@@ -1,0 +1,7 @@
+alsa-utils (1.0.21-1slp2) unstable; urgency=low
+
+  * Initial release
+  * Git: pkgs/a/alsa-utils
+  * Tag: alsa-utils_1.0.21-1slp2
+
+ -- Seungbae Shin <seungbae.shin@samsung.com>  Wed, 07 Dec 2011 11:59:33 +0900
