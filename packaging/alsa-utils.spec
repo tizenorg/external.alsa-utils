@@ -8,6 +8,7 @@ Group:      Applications/Multimedia
 License:    GPLv2+
 URL:        http://www.alsa-project.org/
 Source0:    ftp://ftp.alsa-project.org/pub/utils/alsa-utils-%{version}.tar.gz
+Source1001: packaging/alsa-utils.manifest 
 BuildRequires:  libasound-devel
 
 
@@ -32,6 +33,7 @@ Man pages for alsa-utils
 
 
 %build
+cp %{SOURCE1001} .
 
 %configure --disable-static \
     --disable-nls \
@@ -50,6 +52,7 @@ rm -rf %{buildroot}
 %remove_docs
 
 %files
+%manifest alsa-utils.manifest
 %{_bindir}/*
 %{_sbindir}/*
 %{_datadir}/alsa/*
