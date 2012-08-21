@@ -2,7 +2,7 @@
 
 Name:       alsa-utils
 Summary:    Advanced Linux Sound Architecture (ALSA) utilities
-Version: 1.0.21
+Version:    1.0.24.2
 Release:    1
 Group:      Applications/Multimedia
 License:    GPLv2+
@@ -54,4 +54,4 @@ rm -rf %{buildroot}
 %{_sbindir}/*
 %{_datadir}/alsa/*
 %{_datadir}/sounds/*
-
+/lib/udev/rules.d/90-alsa-restore.rules

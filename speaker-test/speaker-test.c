@@ -63,7 +63,8 @@
 enum {
   TEST_PINK_NOISE = 1,
   TEST_SINE,
-  TEST_WAV
+  TEST_WAV,
+  TEST_PATTERN,
 };
 
 #define MAX_CHANNELS	16
@@ -97,6 +98,7 @@ static snd_pcm_uframes_t  buffer_size;
 static snd_pcm_uframes_t  period_size;
 static const char *given_test_wav_file = NULL;
 static char *wav_file_dir = SOUNDSDIR;
+static int debug = 0;
 
 static const char *const channel_name[MAX_CHANNELS] = {
   /*  0 */ N_("Front Left"),
@@ -140,6 +142,15 @@ static const int	channels8[] = {
   2, /* Rear Left   */
   6, /* Side Left   */
   5, /* LFE         */
+};
+static const int	supported_formats[] = {
+  SND_PCM_FORMAT_S8,
+  SND_PCM_FORMAT_S16_LE,
+  SND_PCM_FORMAT_S16_BE,
+  SND_PCM_FORMAT_FLOAT_LE,
+  SND_PCM_FORMAT_S32_LE,
+  SND_PCM_FORMAT_S32_BE,
+  -1
 };
 
 static void generate_sine(uint8_t *frames, int channel, int count, double *_phase) {
@@ -291,6 +302,71 @@ static void generate_pink_noise( uint8_t *frames, int channel, int count) {
       }
     }
   }
+}
+
+/*
+ * useful for tests
+ */
+static void generate_pattern(uint8_t *frames, int channel, int count, int *_pattern) {
+  int pattern = *_pattern;
+  int    chn;
+  int8_t *samp8 = (int8_t*) frames;
+  int16_t *samp16 = (int16_t*) frames;
+  int32_t *samp32 = (int32_t*) frames;
+  float   *samp_f = (float*) frames;
+
+  while (count-- > 0) {
+    for(chn=0;chn<channels;chn++,pattern++) {
+      switch (format) {
+      case SND_PCM_FORMAT_S8:
+        if (chn==channel) {
+          *samp8++ = pattern & 0xff;
+        } else {
+          *samp8++ = 0;
+        }
+        break;
+      case SND_PCM_FORMAT_S16_LE:
+        if (chn==channel) {
+          *samp16++ = LE_SHORT(pattern & 0xfffff);
+        } else {
+          *samp16++ = 0;
+        }
+        break;
+      case SND_PCM_FORMAT_S16_BE:
+        if (chn==channel) {
+          *samp16++ = BE_SHORT(pattern & 0xffff);
+        } else {
+          *samp16++ = 0;
+        }
+        break;
+      case SND_PCM_FORMAT_FLOAT_LE:
+        if (chn==channel) {
+	  *samp_f++ = LE_INT(((double)pattern) / INT32_MAX);
+        } else {
+	  *samp_f++ = 0.0;
+        }
+        break;
+      case SND_PCM_FORMAT_S32_LE:
+        if (chn==channel) {
+          *samp32++ = LE_INT(pattern);
+        } else {
+          *samp32++ = 0;
+        }
+        break;
+      case SND_PCM_FORMAT_S32_BE:
+        if (chn==channel) {
+          *samp32++ = BE_INT(pattern);
+        } else {
+          *samp32++ = 0;
+        }
+        break;
+      default:
+        ;
+      }
+    }
+  }
+
+  *_pattern = pattern;
 }
 
 static int set_hwparams(snd_pcm_t *handle, snd_pcm_hw_params_t *params, snd_pcm_access_t access) {
@@ -677,8 +753,10 @@ static int write_buffer(snd_pcm_t *handle, uint8_t *ptr, int cptr)
 static int write_loop(snd_pcm_t *handle, int channel, int periods, uint8_t *frames)
 {
   double phase = 0;
+  int	 pattern = 0;
   int    err, n;
 
+  fflush(stdout);
   if (test_type == TEST_WAV) {
     int bufsize = snd_pcm_frames_to_bytes(handle, period_size);
     n = 0;
@@ -702,6 +780,8 @@ static int write_loop(snd_pcm_t *handle, int channel, int periods, uint8_t *fram
   for(n = 0; n < periods; n++) {
     if (test_type == TEST_PINK_NOISE)
       generate_pink_noise(frames, channel, period_size);
+    else if (test_type == TEST_PATTERN)
+      generate_pattern(frames, channel, period_size, &pattern);
     else
       generate_sine(frames, channel, period_size, &phase);
 
@@ -717,7 +797,7 @@ static int write_loop(snd_pcm_t *handle, int channel, int periods, uint8_t *fram
 
 static void help(void)
 {
-  int k;
+  const int *fmt;
 
   printf(
 	 _("Usage: speaker-test [OPTION]... \n"
@@ -736,17 +816,14 @@ static void help(void)
 	   "-w,--wavfile	Use the given WAV file as a test sound\n"
 	   "-W,--wavdir	Specify the directory containing WAV files\n"
 	   "\n"));
-#if 1
   printf(_("Recognized sample formats are:"));
-  for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
-    const char *s = snd_pcm_format_name(k);
+  for (fmt = supported_formats; *fmt >= 0; fmt++) {
+    const char *s = snd_pcm_format_name(*fmt);
     if (s)
       printf(" %s", s);
   }
 
   printf("\n\n");
-#endif
-
 }
 
 int main(int argc, char *argv[]) {
@@ -756,6 +833,7 @@ int main(int argc, char *argv[]) {
   snd_pcm_sw_params_t  *swparams;
   uint8_t              *frames;
   int                   chn;
+  const int	       *fmt;
   double		time1,time2,time3;
   unsigned int		n, nloops;
   struct   timeval	tv1,tv2;
@@ -775,6 +853,7 @@ int main(int argc, char *argv[]) {
     {"speaker",   1, NULL, 's'},
     {"wavfile",   1, NULL, 'w'},
     {"wavdir",    1, NULL, 'W'},
+    {"debug",	  0, NULL, 'd'},
     {NULL,        0, NULL, 0  },
   };
 
@@ -793,7 +872,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int c;
     
-    if ((c = getopt_long(argc, argv, "hD:r:c:f:F:b:p:P:t:l:s:w:W:", long_option, NULL)) < 0)
+    if ((c = getopt_long(argc, argv, "hD:r:c:f:F:b:p:P:t:l:s:w:W:d", long_option, NULL)) < 0)
       break;
     
     switch (c) {
@@ -805,6 +884,13 @@ int main(int argc, char *argv[]) {
       break;
     case 'F':
       format = snd_pcm_format_value(optarg);
+      for (fmt = supported_formats; *fmt >= 0; fmt++)
+        if (*fmt == format)
+          break;
+      if (*fmt < 0) {
+        fprintf(stderr, "Format %s is not supported...\n", snd_pcm_format_name(format));
+        exit(EXIT_FAILURE);
+      }
       break;
     case 'r':
       rate = atoi(optarg);
@@ -843,9 +929,11 @@ int main(int argc, char *argv[]) {
 	test_type = TEST_SINE;
       else if (*optarg == 'w')
 	test_type = TEST_WAV;
+      else if (*optarg == 't')
+	test_type = TEST_PATTERN;
       else if (isdigit(*optarg)) {
 	test_type = atoi(optarg);
-	if (test_type < TEST_PINK_NOISE || test_type > TEST_WAV) {
+	if (test_type < TEST_PINK_NOISE || test_type > TEST_PATTERN) {
 	  fprintf(stderr, _("Invalid test type %s\n"), optarg);
 	  exit(1);
 	}
@@ -871,6 +959,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'W':
       wav_file_dir = optarg;
+      break;
+    case 'd':
+      debug = 1;
       break;
     default:
       fprintf(stderr, _("Unknown option '%c'\n"), c);
@@ -902,9 +993,9 @@ int main(int argc, char *argv[]) {
 
   }
 
-  while ((err = snd_pcm_open(&handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+  if ((err = snd_pcm_open(&handle, device, SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
     printf(_("Playback open error: %d,%s\n"), err,snd_strerror(err));
-    sleep(1);
+    exit(EXIT_FAILURE);
   }
 
   if ((err = set_hwparams(handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
@@ -916,6 +1007,14 @@ int main(int argc, char *argv[]) {
     printf(_("Setting of swparams failed: %s\n"), snd_strerror(err));
     snd_pcm_close(handle);
     exit(EXIT_FAILURE);
+  }
+  if (debug) {
+    snd_output_t *log;
+    err = snd_output_stdio_attach(&log, stderr, 0);
+    if (err >= 0) {
+      snd_pcm_dump(handle, log);
+      snd_output_close(log);
+    }
   }
 
   frames = malloc(snd_pcm_frames_to_bytes(handle, period_size));
