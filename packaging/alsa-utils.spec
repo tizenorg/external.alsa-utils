@@ -1,5 +1,3 @@
-#sbs-git:slp/pkgs/a/alsa-utils alsa-utils 1.0.21 7b8a27d87cefc0e56d80383e61a0385e88cd90fd
-
 Name:       alsa-utils
 Summary:    Advanced Linux Sound Architecture (ALSA) utilities
 Version:    1.0.24.2
