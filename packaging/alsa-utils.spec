@@ -43,6 +43,8 @@ exit
 
 %install
 rm -rf %{buildroot}
+mkdir -p %{buildroot}/usr/share/license
+cp COPYING %{buildroot}/usr/share/license/%{name}
 %make_install
 
 %remove_docs
@@ -54,3 +56,4 @@ rm -rf %{buildroot}
 %{_datadir}/alsa/*
 %{_datadir}/sounds/*
 /lib/udev/rules.d/90-alsa-restore.rules
+/usr/share/license/%{name}
