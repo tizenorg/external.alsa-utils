@@ -1,0 +1,4 @@
+@PREFIX@/bin/*
+@PREFIX@/sbin/*
+@PREFIX@/share/alsa/*
+@PREFIX@/share/sounds/*
