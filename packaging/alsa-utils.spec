@@ -2,13 +2,13 @@
 
 Name:       alsa-utils
 Summary:    Advanced Linux Sound Architecture (ALSA) utilities
-Version:    1.0.24.3
-Release:    0
+Version:    1.0.24.4
+Release:    4
 Group:      Applications/Multimedia
 License:    GPLv2+
 URL:        http://www.alsa-project.org/
 Source0:    ftp://ftp.alsa-project.org/pub/utils/alsa-utils-%{version}.tar.gz
-BuildRequires:  libasound-devel
+BuildRequires: pkgconfig(alsa)
 
 
 %description
@@ -38,7 +38,6 @@ Man pages for alsa-utils
     --disable-xmlto \
     --disable-alsamixer \
     --disable-alsatest \
-    --disable-alsaconf \
     --with-udev-rules-dir=/usr/lib/udev/rules.d
 
 make %{?jobs:-j%jobs}
@@ -48,26 +47,17 @@ exit
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/license
-mkdir -p %{buildroot}/opt/usr/devel/usr/bin
-mkdir -p %{buildroot}/opt/usr/devel/usr/sbin
 cp COPYING %{buildroot}/usr/share/license/%{name}
 
 %make_install
-
-mv %{buildroot}/usr/bin/* %{buildroot}/opt/usr/devel/usr/bin
-mv %{buildroot}/usr/sbin/* %{buildroot}/opt/usr/devel/usr/sbin
 
 %remove_docs
 
 %files
 %manifest alsa-utils.manifest
-/opt/usr/devel/usr/bin/*
-/opt/usr/devel/usr/sbin/*
+%{_bindir}/*
+%{_sbindir}/*
 %{_datadir}/alsa/*
-%ifarch %{arm}
 %{_datadir}/sounds/*
-%else
-%exclude %{_datadir}/sounds/*
-%endif
 /usr/lib/udev/rules.d/90-alsa-restore.rules
 /usr/share/license/%{name}
