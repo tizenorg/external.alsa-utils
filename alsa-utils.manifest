@@ -1,0 +1,25 @@
+<manifest>
+	<request>
+		<domain name="_" />
+	</request>
+	<define>
+		<domain name="alsa-utils" />
+	</define>
+	<assign>
+		<filesystem path="/usr/bin/alsaloop" exec_label="none"/>
+		<filesystem path="/usr/bin/alsaucm" exec_label="none"/>
+		<filesystem path="/usr/bin/amixer" exec_label="none"/>
+		<filesystem path="/usr/bin/aplay" exec_label="none"/>
+		<filesystem path="/usr/bin/iecset" exec_label="none"/>
+		<filesystem path="/usr/bin/speaker-test" exec_label="none"/>
+		<filesystem path="/usr/sbin/alsaconf" exec_label="none"/>
+		<filesystem path="/usr/sbin/alsactl" exec_label="none"/>
+		<filesystem path="/usr/bin/amidi" exec_label="none"/>
+		<filesystem path="/usr/bin/aseqdump" exec_label="none"/>
+		<filesystem path="/usr/bin/aconnect" exec_label="none"/>
+		<filesystem path="/usr/bin/arecordmidi" exec_label="none"/>
+		<filesystem path="/usr/bin/aseqnet" exec_label="none"/>
+		<filesystem path="/usr/bin/aplaymidi" exec_label="none"/>
+	</assign>
+</manifest>
+
